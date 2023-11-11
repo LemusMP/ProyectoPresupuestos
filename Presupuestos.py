@@ -39,20 +39,53 @@ class FacturaApp:
         self.configurar_tab_factura()
 
     def configurar_tab_datos(self):
-        # Crear etiquetas y campos de entrada para datos de empresa y cliente
-        ttk.Label(self.tab1, text="Datos de la Empresa").grid(column=0, row=0, columnspan=2, pady=10)
-        self.crear_campos(self.tab1, self.datos_empresa, row_start=1)
+        # Crear un Canvas para la pestaña de Datos
+        canvas_datos = tk.Canvas(self.tab1)
+        canvas_datos.pack(side="left", fill="both", expand=True)
 
-        ttk.Label(self.tab1, text="Datos del Cliente").grid(column=0, row=5, columnspan=2, pady=10)
-        self.crear_campos(self.tab1, self.datos_cliente, row_start=6)
+        # Agregar un Scrollbar al Canvas
+        scrollbar_datos = ttk.Scrollbar(self.tab1, orient="vertical", command=canvas_datos.yview)
+        scrollbar_datos.pack(side="right", fill="y")
 
-        ttk.Button(self.tab1, text="Guardar Datos", command=self.guardar_datos).grid(column=1, row=11, pady=10)
+        # Configurar el Scrollbar para que interactúe con el Canvas
+        canvas_datos.configure(yscrollcommand=scrollbar_datos.set)
+
+        # Crear un nuevo Frame para contener los widgets
+        frame_datos = ttk.Frame(canvas_datos)
+        canvas_datos.create_window((0, 0), window=frame_datos, anchor="nw")
+
+        # Configurar etiquetas y campos de entrada para datos de empresa y cliente
+        ttk.Label(frame_datos, text="Datos de la Empresa").grid(column=0, row=0, columnspan=2, pady=10)
+        self.crear_campos(frame_datos, self.datos_empresa, row_start=1)
+
+        ttk.Label(frame_datos, text="Datos del Cliente").grid(column=0, row=5, columnspan=2, pady=10)
+        self.crear_campos(frame_datos, self.datos_cliente, row_start=6)
+
+        ttk.Button(frame_datos, text="Guardar Datos", command=self.guardar_datos).grid(column=1, row=11, pady=10)
+
+        # Configurar el evento de desplazamiento
+        frame_datos.bind("<Configure>", lambda event, canvas=canvas_datos: self.on_frame_configure(canvas))
 
     def configurar_tab_factura(self):
-        # Crear pestañas para cada segmento de la factura
+        # Crear un Canvas para la pestaña de Factura
+        canvas_factura = tk.Canvas(self.tab2)
+        canvas_factura.pack(side="left", fill="both", expand=True)
+
+        # Agregar un Scrollbar al Canvas
+        scrollbar_factura = ttk.Scrollbar(self.tab2, orient="vertical", command=canvas_factura.yview)
+        scrollbar_factura.pack(side="right", fill="y")
+
+        # Configurar el Scrollbar para que interactúe con el Canvas
+        canvas_factura.configure(yscrollcommand=scrollbar_factura.set)
+
+        # Crear un nuevo Frame para contener los widgets
+        frame_factura = ttk.Frame(canvas_factura)
+        canvas_factura.create_window((0, 0), window=frame_factura, anchor="nw")
+
+        # Configurar pestañas para cada segmento de la factura
         for segmento in self.segmentos.keys():
-            frame_tab = ttk.Frame(self.tab2)
-            frame_tab.pack(pady=10)
+            frame_tab = ttk.Frame(frame_factura)
+            frame_tab.pack(pady=10, padx=10)
 
             ttk.Label(frame_tab, text=segmento).pack(pady=5)
 
@@ -92,47 +125,43 @@ class FacturaApp:
                 tree.insert('', 'end', values=row.tolist())
 
         # Botón para agregar nueva tabla
-        ttk.Button(self.tab2, text="Agregar Tabla", command=self.agregar_tabla).pack(pady=10)
+        ttk.Button(frame_factura, text="Agregar Tabla", command=self.agregar_tabla).pack(pady=10)
 
         # Botón para calcular totales y guardar factura
-        ttk.Button(self.tab2, text="Calcular Totales y Guardar", command=self.calcular_totales_guardar).pack(pady=10)
+        ttk.Button(frame_factura, text="Calcular Totales y Guardar", command=self.calcular_totales_guardar).pack(pady=10)
 
+        # Configurar el evento de desplazamiento
+        frame_factura.bind("<Configure>", lambda event, canvas=canvas_factura: self.on_frame_configure(canvas))
 
-    def crear_tabla(self, tab, df):
-        # Crear Frame para la tabla
-        frame_tabla = ttk.Frame(tab)
-        frame_tabla.pack(pady=10)
+    def crear_campos(self, frame, data_dict, row_start):
+        for i, (campo, valor) in enumerate(data_dict.items()):
+            ttk.Label(frame, text=f"{campo}:").grid(column=0, row=row_start + i, pady=5)
+            data_dict[campo] = tk.StringVar()
+            ttk.Entry(frame, textvariable=data_dict[campo]).grid(column=1, row=row_start + i, pady=5)
 
-        # Crear tabla usando Treeview con barras de desplazamiento
-        tree = ttk.Treeview(frame_tabla, columns=('Linea', 'Descripción', 'Unidad', 'Precio Unitario', 'Cantidad', 'Total'), show='headings')
-        tree.heading('Linea', text='Linea')
-        tree.heading('Descripción', text='Descripción')
-        tree.heading('Unidad', text='Unidad')
-        tree.heading('Precio Unitario', text='Precio Unitario')
-        tree.heading('Cantidad', text='Cantidad')
-        tree.heading('Total', text='Total')
+    def guardar_datos(self):
+        # Función para guardar datos de empresa y cliente
+        print("Datos guardados")
 
-        tree.column('Linea', width=50, anchor='center')
-        tree.column('Descripción', width=150, anchor='center')
-        tree.column('Unidad', width=100, anchor='center')
-        tree.column('Precio Unitario', width=100, anchor='center')
-        tree.column('Cantidad', width=100, anchor='center')
-        tree.column('Total', width=100, anchor='center')
+    def calcular_totales_guardar(self):
+        # Función para calcular totales y guardar la factura
+        totales = {}
+        for segmento, df in self.segmentos.items():
+            totales[segmento] = self.calcular_subtotal(df)
 
-        yscrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=tree.yview)
-        yscrollbar.pack(side='right', fill='y')
-        tree.configure(yscrollcommand=yscrollbar.set)
+        total_final = sum(totales.values())
 
-        tree.pack()
+        # Mostrar resultados
+        messagebox.showinfo("Totales Calculados", "\n".join([f"{segmento}: {subtotal}" for segmento, subtotal in totales.items()] +
+                                                              [f"\nTotal Final: {total_final}"]))
 
-        # Configurar botones para agregar, eliminar y modificar filas
-        ttk.Button(frame_tabla, text="Agregar Fila", command=lambda: self.agregar_fila(tree)).pack(side='left', padx=5)
-        ttk.Button(frame_tabla, text="Eliminar Fila", command=lambda: self.eliminar_fila(tree)).pack(side='left', padx=5)
-        ttk.Button(frame_tabla, text="Modificar Fila", command=lambda: self.modificar_fila(tree)).pack(side='left', padx=5)
+    def calcular_subtotal(self, df):
+        # Calcular subtotal para un DataFrame dado
+        return df['Total'].sum()
 
-        # Agregar datos al Treeview
-        for i, row in df.iterrows():
-            tree.insert('', 'end', values=row.tolist())
+    def on_frame_configure(self, canvas):
+        # Ajustar el área desplazable para coincidir con el tamaño del contenido
+        canvas.configure(scrollregion=canvas.bbox("all"))
 
     def agregar_fila(self, tree):
         # Función para agregar una nueva fila
@@ -187,34 +216,41 @@ class FacturaApp:
             ttk.Label(self.tab2, text=nuevo_nombre_tabla).pack(pady=10)
             self.crear_tabla(self.tab2, self.segmentos[nuevo_nombre_tabla])
 
-    def crear_campos(self, frame, data_dict, row_start):
-        for i, (campo, valor) in enumerate(data_dict.items()):
-            ttk.Label(frame, text=f"{campo}:").grid(column=0, row=row_start + i, pady=5)
-            data_dict[campo] = tk.StringVar()
-            ttk.Entry(frame, textvariable=data_dict[campo]).grid(column=1, row=row_start + i, pady=5)
+    def crear_tabla(self, tab, df):
+        # Crear Frame para la tabla
+        frame_tabla = ttk.Frame(tab)
+        frame_tabla.pack(pady=10)
 
-    def guardar_datos(self):
-        # Función para guardar datos de empresa y cliente
-        # Puedes personalizar esta función según tus necesidades
-        print("Datos guardados")
+        # Crear tabla usando Treeview con barras de desplazamiento
+        tree = ttk.Treeview(frame_tabla, columns=('Linea', 'Descripción', 'Unidad', 'Precio Unitario', 'Cantidad', 'Total'), show='headings')
+        tree.heading('Linea', text='Linea')
+        tree.heading('Descripción', text='Descripción')
+        tree.heading('Unidad', text='Unidad')
+        tree.heading('Precio Unitario', text='Precio Unitario')
+        tree.heading('Cantidad', text='Cantidad')
+        tree.heading('Total', text='Total')
 
-    def calcular_totales_guardar(self):
-        # Función para calcular totales y guardar la factura
-        # Puedes personalizar esta función según tus necesidades
+        tree.column('Linea', width=50, anchor='center')
+        tree.column('Descripción', width=150, anchor='center')
+        tree.column('Unidad', width=100, anchor='center')
+        tree.column('Precio Unitario', width=100, anchor='center')
+        tree.column('Cantidad', width=100, anchor='center')
+        tree.column('Total', width=100, anchor='center')
 
-        totales = {}
-        for segmento, df in self.segmentos.items():
-            totales[segmento] = self.calcular_subtotal(df)
+        yscrollbar = ttk.Scrollbar(frame_tabla, orient="vertical", command=tree.yview)
+        yscrollbar.pack(side='right', fill='y')
+        tree.configure(yscrollcommand=yscrollbar.set)
 
-        total_final = sum(totales.values())
+        tree.pack()
 
-        # Mostrar resultados
-        messagebox.showinfo("Totales Calculados", "\n".join([f"{segmento}: {subtotal}" for segmento, subtotal in totales.items()] +
-                                                              [f"\nTotal Final: {total_final}"]))
+        # Configurar botones para agregar, eliminar y modificar filas
+        ttk.Button(frame_tabla, text="Agregar Fila", command=lambda: self.agregar_fila(tree)).pack(side='left', padx=5)
+        ttk.Button(frame_tabla, text="Eliminar Fila", command=lambda: self.eliminar_fila(tree)).pack(side='left', padx=5)
+        ttk.Button(frame_tabla, text="Modificar Fila", command=lambda: self.modificar_fila(tree)).pack(side='left', padx=5)
 
-    def calcular_subtotal(self, df):
-        # Calcular subtotal para un DataFrame dado
-        return df['Total'].sum()
+        # Agregar datos al Treeview
+        for i, row in df.iterrows():
+            tree.insert('', 'end', values=row.tolist())
 
 # Inicializar la aplicación
 root = tk.Tk()
