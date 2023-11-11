@@ -67,24 +67,35 @@ class FacturaApp:
         frame_datos.bind("<Configure>", lambda event, canvas=canvas_datos: self.on_frame_configure(canvas))
 
     def configurar_tab_factura(self):
+        #Obtener dimensiones de la pantalla
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
         # Crear un Canvas para la pestaña de Factura
         canvas_factura = tk.Canvas(self.tab2)
         canvas_factura.pack(side="left", fill="both", expand=True)
+        canvas_factura.configure(width=screen_width-100, height=screen_height-300)
 
         # Agregar un Scrollbar al Canvas
         scrollbar_factura = ttk.Scrollbar(self.tab2, orient="vertical", command=canvas_factura.yview)
-        scrollbar_factura.pack(side="right", fill="y")
+        scrollbar_factura.pack(side="right", fill="y",expand=True)
 
         # Configurar el Scrollbar para que interactúe con el Canvas
         canvas_factura.configure(yscrollcommand=scrollbar_factura.set)
 
         # Crear un nuevo Frame para contener los widgets
         frame_factura = ttk.Frame(canvas_factura)
+        #frame_factura.configure(width=2000, height=2000)
         canvas_factura.create_window((0, 0), window=frame_factura, anchor="nw")
+        
+
+        # Crear un nuevo Frame para contener las tablas
+        self.tablas_frame = ttk.Frame(frame_factura)
+        
+        self.tablas_frame.pack(pady=10,padx=screen_height-400)
 
         # Configurar pestañas para cada segmento de la factura
         for segmento in self.segmentos.keys():
-            frame_tab = ttk.Frame(frame_factura)
+            frame_tab = ttk.Frame(self.tablas_frame)
             frame_tab.pack(pady=10, padx=10)
 
             ttk.Label(frame_tab, text=segmento).pack(pady=5)
@@ -132,6 +143,7 @@ class FacturaApp:
 
         # Configurar el evento de desplazamiento
         frame_factura.bind("<Configure>", lambda event, canvas=canvas_factura: self.on_frame_configure(canvas))
+        
 
     def crear_campos(self, frame, data_dict, row_start):
         for i, (campo, valor) in enumerate(data_dict.items()):
@@ -213,8 +225,8 @@ class FacturaApp:
         nuevo_nombre_tabla = simpledialog.askstring("Agregar Tabla", "Ingrese el nombre de la nueva tabla:")
         if nuevo_nombre_tabla:
             self.segmentos[nuevo_nombre_tabla] = pd.DataFrame(columns=['Linea', 'Descripción', 'Unidad', 'Precio Unitario', 'Cantidad', 'Total'])
-            ttk.Label(self.tab2, text=nuevo_nombre_tabla).pack(pady=10)
-            self.crear_tabla(self.tab2, self.segmentos[nuevo_nombre_tabla])
+            ttk.Label(self.tablas_frame, text=nuevo_nombre_tabla).pack(pady=10)
+            self.crear_tabla(self.tablas_frame, self.segmentos[nuevo_nombre_tabla])
 
     def crear_tabla(self, tab, df):
         # Crear Frame para la tabla
@@ -256,3 +268,4 @@ class FacturaApp:
 root = tk.Tk()
 app = FacturaApp(root)
 root.mainloop()
+
